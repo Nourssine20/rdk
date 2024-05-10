@@ -30,6 +30,9 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
+import javax.ws.rs.core.MediaType;
+
+import org.apache.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,23 +71,22 @@ public final class AutomaticsPropertyUtility {
 
 	    // if the system property is set, then its given 1st priority, else the default value will be taken.
 	    String propertyFileLoc = System.getProperty("automatics.properties.file");
-
+	    
 	    if (CommonMethods.isNotNull(propertyFileLoc)) {
 		LOGGER.info("AutomaticsPropertyUtility: Reading automatics.properties file from " + propertyFileLoc);
 
 		try {
-		    connection = new URL(propertyFileLoc).openConnection();
-
-		    connection.setRequestProperty("content-type", "application/x-www-form-urlencoded");
-		    connection.setDoOutput(true);
-		    connection.setUseCaches(false);
-
 		    /*
 		     * Holds the base64 encoded passcode for accessing automatics properties file. The id and password
 		     * is retrieved from the passcode which is used to secure the access of the file.
 		     */
 		    String propertiesToken = System.getProperty(Constants.AUTOMATICS_PROPERTIES_FILE_TOKEN);
-		    CommonMethods.fetchData(connection, propertiesToken);
+		    propertiesToken = "Basic " + propertiesToken;
+		    connection = new URL(propertyFileLoc).openConnection();
+		    connection.setRequestProperty(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED);
+		    connection.setRequestProperty(HttpHeaders.AUTHORIZATION, propertiesToken);
+		    connection.setDoInput(true);
+		    connection.setDoOutput(false);
 		    InputStream inputStream = connection.getInputStream();
 		    properties.load(inputStream);
 		    FileOutputStream outputStream = new FileOutputStream("target/automatics.properties");
@@ -204,18 +206,19 @@ public final class AutomaticsPropertyUtility {
 
 	    try {
 		URLConnection connection = new URL(propertyFileLoc).openConnection();
-
-		connection.setRequestProperty("content-type", "application/x-www-form-urlencoded");
-		connection.setDoOutput(true);
-		connection.setUseCaches(false);
 		String propertiesToken = System.getProperty(Constants.AUTOMATICS_PROPERTIES_FILE_TOKEN);
-		CommonMethods.fetchData(connection, propertiesToken);
+		propertiesToken = "Basic " + propertiesToken;
+		connection.setRequestProperty(HttpHeaders.CONTENT_TYPE ,MediaType.APPLICATION_FORM_URLENCODED);
+		connection.setRequestProperty(HttpHeaders.AUTHORIZATION, propertiesToken);
+	    connection.setDoInput(true);
+	    connection.setDoOutput(false);
 		InputStream inputStream = connection.getInputStream();
 		properties.load(inputStream);
 		FileOutputStream outputStream = new FileOutputStream("target/automatics.properties");
 		properties.store(outputStream, "Generated from URL: " + propertyFileLoc);
 		connection.getInputStream().close();
 		outputStream.close();
+		
 	    } catch (FileNotFoundException e) {
 		LOGGER.error("AutomaticsPropertyUtility: File Not Found: {}. Cannot continue execution.",
 			e.getMessage());
